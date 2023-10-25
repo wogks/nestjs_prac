@@ -11,8 +11,8 @@ getPosts(){
 }
 
 @Get(':id')
-getPost(@Param('id') id:string){
-  this.postsService.getPostById(+id);
+getPost(@Param('id') id:string){ 
+  return this.postsService.getPostById(+id);
 }
 
 @Post()

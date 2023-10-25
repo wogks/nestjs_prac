@@ -1,4 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PostsModel } from './entities/post.entity';
 
 export interface PostModel {
     id:number;
@@ -37,39 +40,50 @@ export interface PostModel {
   ];
 @Injectable()
 export class PostsService {
-    getAllPosts(){
-        return posts;
+  constructor(
+    @InjectRepository(PostsModel)
+    private readonly postsRepository: Repository<PostsModel>
+  ){}
+  
+    async getAllPosts(){
+        return this.postsRepository.find();
     }
 
-    getPostById(id: number){
-        const post = posts.find((post)=>post.id === +id);
+    async getPostById(id: number){
+      const post = await this.postsRepository.findOne({
+        where:{
+          id:id,
+        }
+      })
 
-  if(!post){
-    throw new NotFoundException();
-  }
+      if(!post){
+        throw new NotFoundException();
+      }
 
-  return post;
+      return post;
     }
 
-    createPost(author:string,title:string,content:string){
-        const post = {
-            id: posts[posts.length - 1].id +1,
-            author,
-            title,
-            content,
-            likeCount:0,
-            commentCount:0,
-          };
-      
-          posts = [
-            ...posts,
-            post,
-          ];
-          return post;
+    async createPost(author:string,title:string,content:string){
+        const post = this.postsRepository.create({
+          author,
+          title,
+          content,
+          likeCount: 0,
+          commentCount: 0,
+        });
+
+        const newPost = await this.postsRepository.save(post);
+
+        return newPost;
     }
 
-    updatePost(postId: number,author:string,title:string,content:string){
-        const post = posts.find(post=>post.id === postId);
+    async updatePost(postId: number,author:string,title:string,content:string){
+
+      const post = await this.postsRepository.findOne({
+        where:{
+          id:postId,
+        }
+      });
     if(!post){
       throw new NotFoundException();
     }
@@ -84,17 +98,21 @@ export class PostsService {
       post.content = content;
     }
 
-    posts = posts.map(prevPost => prevPost.id === postId ? post : prevPost);
+    const newPost = await this.postsRepository.save(post);
 
-    return post;
+    return newPost;
     }
 
-    deletePost(postId:number){
-        const post = posts.find((post)=>post.id===+postId);
+  async deletePost(postId:number){
+    const post = await this.postsRepository.findOne({
+      where:{
+        id:postId,
+      }
+    });
     if(!post){
       throw new NotFoundException();
     }
-    posts = posts.filter(post => post.id !== postId);
+    await this.postsRepository.delete(postId);
 
     return postId;
     }
